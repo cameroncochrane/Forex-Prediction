@@ -1,0 +1,27 @@
+##### Create and activate a Python virtual environment ####
+
+macOS / Linux:
+1) Create:  python3 -m venv .venv
+2) Activate: source .venv/bin/activate
+3) (Optional) Upgrade pip: python -m pip install --upgrade pip
+4) Deactivate: deactivate
+
+Windows (CMD):
+1) Create:  py -m venv .venv
+2) Activate: .\.venv\Scripts\activate
+3) (Optional) Upgrade pip: python -m pip install --upgrade pip
+4) Deactivate: deactivate
+
+Windows (PowerShell):
+1) Create:  py -m venv .venv
+2) Activate: .\.venv\Scripts\Activate.ps1
+3) (Optional) Upgrade pip: python -m pip install --upgrade pip
+4) Deactivate: deactivate
+
+####### Adding a requirements.txt file ready for Docker ######
+
+- Dockerise at the end
+- Make sure to create in a venv
+- Run 'pip freeze > requirements.txt' to generate the file (will add one if it's not present already)
+- Lots of junk may be added. Only include the packages that are used in the project e.g pandas, numpy etc.
+- Don't add it to .gitignore
