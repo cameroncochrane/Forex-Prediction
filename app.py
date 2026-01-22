@@ -14,17 +14,17 @@ saved_arima_models = {'EURO/US$': 'models/EURO_US_arima_model.pkl',
 
 saved_gb_models ={} ## UPDATE AS REQUIRED, check identical structure to above ##
 saved_lstm_models ={} ## UPDATE AS REQUIRED, " ##
+# Holds the most recent forecast dataframe (initialized to None)
+forecasted_data = None
 
 def master_():
 
     st.title("Forex Prediction App")
 
-    # Define default currency and model so the app doesn't moan when booted!!!
-    global currency
-    global model_name #Model name, not the actual model (model_)
     # Define default currency
     currency = country_currency_dict['EURO AREA']
     model_name = "ARIMA"
+    model_ = None
 
     currency = st.selectbox(
         "Select a Currency",
@@ -41,7 +41,6 @@ def master_():
         on_click=load_model(currency,model_name)
     )
 
-    global forecast_length
     forecast_length = st.slider("Select forecast period (in days)", min_value=1, max_value=30, value=1)
     st.write(f"Forecast length: {forecast_length} days")
 
@@ -51,39 +50,46 @@ def master_():
         )
     
 
+    # Logic to display the forecasted data, and refresh when changed:
+
+    if forecasted_data:
+        st.dataframe(forecasted_data)
+    
+
 
 # Global function(s)
 
 # This loads a model into the global model_ variable ready to be used for forecasting
-def load_model(_currency,model):
+def load_model(_currency,model_n):
     global model_ #To make sure the model object can be accessed anywhere...
+    global model_name
 
-    if model=="ARIMA":
+    if model_n=="ARIMA":
         loaded_arima_models = load_saved_arima_models(saved_arima_models)
-        model_name == "ARIMA"
+        model_name = "ARIMA"
         model_ = loaded_arima_models[_currency]
         print(f"LOADED ARIMA MODEL:{_currency}")
-    if model =="Gradient Boost":
+    if model_n =="Gradient Boost":
         print(f"LOADED GB MODEL:{_currency}")
-    if model =="LSTM-RNN":
+    if model_n =="LSTM-RNN":
         print(f"LOADED LSTMRNN MODEL:{_currency}")
 
 def execute_model():
     """
     To be executed when forecast button is pressed
     """
+    global forecasted_data
     if model_name == "ARIMA":
-        execute_arima(data)
-    if model_name == "Gradient Boost":
+        forecasted_data = execute_arima()
+    elif model_name == "Gradient Boost":
         execute_xgboost(data)
-        print()
-    if model_name == "LSTM-RNN":
-        print()
+    elif model_name == "LSTM-RNN":
+        pass
     else:
         print("Couldn't execute forecast")
     
 
-def execute_arima(model=model_,data=data,currency=currency,f=forecast_length):
+def execute_arima(model,data,currency,f):
     """
     To execute ARIMA forecast, we need model_(global), forecast_length(global), currency(global), and access to data to generate
     a last_value.
@@ -91,10 +97,11 @@ def execute_arima(model=model_,data=data,currency=currency,f=forecast_length):
     # all_last_values = arima_generate_last_values()
     # last_values_single = all_last_values[currency]
     # forecasted_list = arima_single_model_forecast(model=model,last_value=last_values_single,forecast_length=f)
-    # forecasted_df = arima_price_forecasts_to_dataframe()
+    
+    
+    fd = arima_price_forecasts_to_dataframe()
 
-    # global forecasted_data
-    # forecasted_data = forecasted_df
+    return fd
     # print(forecasted_data.shape)
 
 def execute_xgboost(data):
