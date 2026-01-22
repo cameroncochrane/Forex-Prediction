@@ -83,18 +83,19 @@ def execute_model():
         print("Couldn't execute forecast")
     
 
-def execute_arima(data):
+def execute_arima(model=model_,data=data,currency=currency,f=forecast_length):
     """
-    To execute ARIMA forecast, we need model_(global), forecast_length(global), currency_(global), and access to data to generate
+    To execute ARIMA forecast, we need model_(global), forecast_length(global), currency(global), and access to data to generate
     a last_value.
     """
-    # last_values = arima_generate_last_values()
-    # forecasted_list = arima_single_model_forecast()
+    # all_last_values = arima_generate_last_values()
+    # last_values_single = all_last_values[currency]
+    # forecasted_list = arima_single_model_forecast(model=model,last_value=last_values_single,forecast_length=f)
     # forecasted_df = arima_price_forecasts_to_dataframe()
 
     # global forecasted_data
     # forecasted_data = forecasted_df
-    print()
+    # print(forecasted_data.shape)
 
 def execute_xgboost(data):
     print()
