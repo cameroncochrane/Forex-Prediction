@@ -121,21 +121,44 @@ def load_saved_arima_models(saved_files_dict):
     
     return loaded_models
 
-def arima_generate_last_values(train_data,country_currency_dict):
+def arima_generate_last_values(data, country_currency_dict, test_length=60):
     """
-    Find the last values in the training data to allow conversion of forecasted log returns to forecasted prices
+    Take full data, derive the training set by removing the last `test_length` rows,
+    and return the last observed value for each currency in country_currency_dict.
 
-    country_currency_dict: Generated when importing the data.
-    
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Full dataset with currency columns.
+    country_currency_dict : dict
+        Mapping used to identify currency column names (values are column names).
+    test_length : int, optional
+        Number of rows reserved for test set (default 60).
+
+    Returns
+    -------
+    dict
+        Mapping currency -> last training value (float).
     """
+    if not isinstance(data, pd.DataFrame):
+        data = pd.DataFrame(data)
+
+    if len(data) <= test_length:
+        raise ValueError("Data length must be greater than test_length")
+
+    train_data = data.iloc[:-test_length].copy()
+
     c_list = list(country_currency_dict.values())
     training_data_last_values = {}
 
     for currency in c_list:
-        # Get the last value from training data
-        last_value = train_data[currency].iloc[-1]
-        training_data_last_values[currency] = last_value
-    
+        if currency not in train_data.columns:
+            raise KeyError(f"Currency '{currency}' not found in data columns")
+        series = pd.to_numeric(train_data[currency], errors="coerce").dropna()
+        if series.empty:
+            raise ValueError(f"No valid training data for currency '{currency}'")
+        training_data_last_values[currency] = float(series.iloc[-1])
+
     return training_data_last_values
 
 def arima_models_forecast(model_dict,last_values,forecast_length=60):
@@ -183,16 +206,42 @@ def arima_single_model_forecast(model, last_value, forecast_length=60, currency_
     
     return currency_price_forecast
 
-def arima_price_forecasts_to_dataframe(currency_price_forecasts_dict):
-    # Create DataFrame from the dictionary
-    df = pd.DataFrame(currency_price_forecasts_dict)
+def arima_price_forecast_to_dataframe(currency_price_forecasts):
+    """
+    Accepts either:
+      - a dict of {currency_name: pd.Series/array_like} (as from arima_models_forecast), or
+      - a single pd.Series (as returned by arima_single_model_forecast)
+    Returns a DataFrame indexed by forecast_period (1..N) with one column per currency.
+    """
+    # Normalize single-series input to a dict
+    if isinstance(currency_price_forecasts, pd.Series):
+        col_name = currency_price_forecasts.name or "predicted_price"
+        data_dict = {col_name: currency_price_forecasts}
+    elif isinstance(currency_price_forecasts, dict):
+        data_dict = currency_price_forecasts
+    else:
+        raise TypeError("Input must be a dict of series/arrays or a single pd.Series")
 
-    # Reset index to create a forecast period column
-    df = df.reset_index()
-    df = df.rename(columns={'index': 'forecast_period'})
+    # Convert values to 1D numpy arrays preserving order
+    normalized = {}
+    lengths = set()
+    for k, v in data_dict.items():
+        if isinstance(v, pd.DataFrame):
+            # take first column if a DataFrame was passed
+            s = v.iloc[:, 0]
+        else:
+            s = pd.Series(v)
+        arr = s.values
+        normalized[k] = arr
+        lengths.add(len(arr))
 
-    # Set forecast period as sequential numbers starting from 1
-    df['forecast_period'] = range(1, len(df) + 1)
-    df = df.set_index('forecast_period')
+    if len(lengths) > 1:
+        raise ValueError("All forecast series must have the same length")
+
+    # Build DataFrame and set sequential forecast_period index starting at 1
+    df = pd.DataFrame(normalized)
+    n = len(df)
+    df.index = range(1, n + 1)
+    df.index.name = "forecast_period"
 
     return df
