@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 from data_functions import *
 from arima_functions import *
+from xgboost_functions import *
 
 
 # These dictionaries are needed to point the load model functions to the correct model paths
@@ -13,7 +14,13 @@ saved_arima_models = {'EURO/US$': 'models/EURO_US_arima_model.pkl',
  'YUAN/US$': 'models/YUAN_US_arima_model.pkl',
  'AUSTRALIAN DOLLAR/US$': 'models/AUSTRALIAN_DOLLAR_US_arima_model.pkl'}
 
-saved_gb_models ={} ## UPDATE AS REQUIRED, check identical structure to above ##
+saved_gb_models ={'EURO/US$': 'models/EURO_US_xgboost_model.pkl',
+ 'UNITED KINGDOM POUND/US$': 'models/UNITED_KINGDOM_POUND_US_xgboost_model.pkl',
+ 'YEN/US$': 'models/YEN_US_xgboost_model.pkl',
+ 'YUAN/US$': 'models/YUAN_US_xgboost_model.pkl',
+ 'AUSTRALIAN DOLLAR/US$': 'models/AUSTRALIAN_DOLLAR_US_xgboost_model.pkl'}
+
+
 saved_lstm_models ={} ## UPDATE AS REQUIRED, " ##
 # (session state will hold the most recent forecast dataframe)
 
@@ -107,8 +114,10 @@ def load_model(_currency,model_n):
         st.session_state['model_'] = loaded_arima_models[_currency]
         print(f"LOADED ARIMA MODEL:{_currency}")
     if model_n =="Gradient Boost":
+        loaded_gb_models = load_saved_gb_models(saved_gb_models)
+        model_name = "Gradient Boost"
+        st.session_state['model_'] = loaded_gb_models[_currency]
         print(f"LOADED GB MODEL:{_currency}")
-        print("Cannot load (model not saved yet)") # Remove when models are ready for use
     if model_n =="LSTM-RNN":
         print(f"LOADED LSTMRNN MODEL:{_currency}")
         print("Cannot load (model not saved yet)") # Remove when models are ready for use
@@ -126,7 +135,15 @@ def execute_model():
             print("Load a model")
 
     elif model_name == "Gradient Boost":
-        execute_xgboost(data)
+        model_obj = st.session_state.get('model_')
+        if model_obj is not None:
+            fd = execute_xgboost(model=model_obj, xgbdata_p=xgbdata_processed, currency=currency, f=forecast_length)
+            # persist forecast in session state so it survives reruns
+            st.session_state['forecasted_data'] = fd
+        else:
+            print(model_obj)
+            print("Load a model")
+
     elif model_name == "LSTM-RNN":
         pass
     else:
@@ -147,8 +164,19 @@ def execute_arima(model,data,currency,f):
     return fd
     
 
-def execute_xgboost(data):
-    print()
+def execute_xgboost(model,xgbdata_p,currency,f):
+
+    bundle = xgbdata_p[currency] #Generated via: processed_xgb_data = process_all_xgboost(raw_gradient_data)
+
+    fd = make_recursive_forecast_xgboost(
+        xgb_model=model,
+        df_features=bundle["df_features"],
+        currency_col=bundle["df_features"].columns[0], # or the known currency column name
+        feature_cols=bundle["feature_cols"],
+        forecast_length=f
+        )
+
+    return fd
         
 
 if __name__ == "__main__":
@@ -156,8 +184,16 @@ if __name__ == "__main__":
     global data
     global country_currency_dict
     global country_names
+    global xgbdata_processed
 
+    # All data:
     data, country_currency_dict, country_names = load_and_process_forex_data()
+
+    # XGBoost Specific data organisation
+    xgbdata_raw = create_data_dict_currency_xgboost(data,country_names,country_currency_dict)
+    xgbdata_processed = process_all_xgboost(xgbdata_raw)
+
+
     master_() #Executes when the app is opened.
     
     
