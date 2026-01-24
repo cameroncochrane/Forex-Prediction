@@ -260,9 +260,16 @@ def make_recursive_forecast_xgboost(
 
         forecasts.append({"step": step, "t": current_last_t, "forecast_price": y_hat})
 
-    ## NEEDS MODIFYING SO THE RETURNED DATAFRAME IS 2 COLUMNS: 'forecast_period' and 'currency_predicted_price', where forecast period is from 1 to forecast_length ##
+    # Convert forecasts to desired two-column format while keeping 'step' as index for compatibility
+    forecasts = [
+        {
+            "forecast_period": f["step"],
+            "currency_predicted_price": f["forecast_price"],
+        }
+        for f in forecasts
+    ]
 
-    return pd.DataFrame(forecasts).set_index("step")
+    return pd.DataFrame(forecasts).set_index("forecast_period")
 
 def load_saved_gb_models(saved_files_dict):
     """
