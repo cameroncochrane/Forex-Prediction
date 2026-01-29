@@ -145,11 +145,11 @@ def execute_model():
             print("Load a model")
 
     elif model_name == "LSTM-RNN":
+        # Make sure to add a way to load the scaler used during training here ready for forecast value inversion.
         pass
     else:
         print("Couldn't execute forecast")
     
-
 def execute_arima(model,data,currency,f):
     """
     To execute ARIMA forecast, we need model_(global), forecast_length(global), currency(global), and access to data to generate
@@ -163,7 +163,6 @@ def execute_arima(model,data,currency,f):
     print(fd.shape)
     return fd
     
-
 def execute_xgboost(model,xgbdata_p,currency,f):
 
     bundle = xgbdata_p[currency] #Generated via: processed_xgb_data = process_all_xgboost(raw_gradient_data)
@@ -177,7 +176,14 @@ def execute_xgboost(model,xgbdata_p,currency,f):
         )
 
     return fd
-        
+
+
+# PLACE RNN FORECASTING EXECUTE + SCALER INVERSION FOR DF OUTPUT HERE:
+def execute_rnn(model,rnndata_p,currency,f,scaler):
+
+    return None
+
+##########################################################################
 
 if __name__ == "__main__":
     # Run the Streamlit app
@@ -189,10 +195,11 @@ if __name__ == "__main__":
     # All data:
     data, country_currency_dict, country_names = load_and_process_forex_data()
 
-    # XGBoost Specific data organisation
+    # XGBoost Specific data organisation:
     xgbdata_raw = create_data_dict_currency_xgboost(data,country_names,country_currency_dict)
     xgbdata_processed = process_all_xgboost(xgbdata_raw)
 
+    # RNN specific data organisation:
 
     master_() #Executes when the app is opened.
     
