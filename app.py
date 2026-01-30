@@ -20,8 +20,12 @@ saved_gb_models ={'EURO/US$': 'models/EURO_US_xgboost_model.pkl',
  'YUAN/US$': 'models/YUAN_US_xgboost_model.pkl',
  'AUSTRALIAN DOLLAR/US$': 'models/AUSTRALIAN_DOLLAR_US_xgboost_model.pkl'}
 
+saved_rnn_models = {'EURO/US$': 'models/EURO_US_rnn_model.pkl',
+ 'UNITED KINGDOM POUND/US$': 'models/UNITED_KINGDOM_POUND_US_rnn_model.pkl',
+ 'YEN/US$': 'models/YEN_US_rnn_model.pkl',
+ 'YUAN/US$': 'models/YUAN_US_rnn_model.pkl',
+ 'AUSTRALIAN DOLLAR/US$': 'models/AUSTRALIAN_DOLLAR_US_rnn_model.pkl'}
 
-saved_lstm_models ={} ## UPDATE AS REQUIRED, " ##
 # (session state will hold the most recent forecast dataframe)
 
 def master_():
