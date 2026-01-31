@@ -1,0 +1,68 @@
+# VCS
+.git
+.gitignore
+
+# Python virtualenvs / env files
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+
+# Bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+checkpoints/
+outputs/
+logs/
+*.h5
+*.ckpt
+*.pt
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+__MACOSX/
+
+# Secrets / environment files / keys
+.env
+*.env
+secrets/
+credentials/
+*.pem
+*.key
+
+# Node artifacts (if present)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Temp / logs
+tmp/
+temp/
+*.log
+*.tmp
+
+# Binary / compiled artifacts
+*.so
+*.dll
+*.dylib
