@@ -2,9 +2,12 @@
 # Packages:
 import streamlit as st
 import pandas as pd
+
 from data_functions import *
+
 from arima_functions import *
 from xgboost_functions import *
+from rnn_functions import *
 
 
 # These dictionaries are needed to point the load model functions to the correct model paths
@@ -25,6 +28,12 @@ saved_rnn_models = {'EURO/US$': 'models/EURO_US_rnn_model.pkl',
  'YEN/US$': 'models/YEN_US_rnn_model.pkl',
  'YUAN/US$': 'models/YUAN_US_rnn_model.pkl',
  'AUSTRALIAN DOLLAR/US$': 'models/AUSTRALIAN_DOLLAR_US_rnn_model.pkl'}
+
+saved_rnn_scalers = {'EURO/US$': 'rnn_scalers/EURO_US__scaler.pkl',
+ 'UNITED KINGDOM POUND/US$': 'rnn_scalers/UNITED_KINGDOM_POUND_US__scaler.pkl',
+ 'YEN/US$': 'rnn_scalers/YEN_US__scaler.pkl',
+ 'YUAN/US$': 'rnn_scalers/YUAN_US__scaler.pkl',
+ 'AUSTRALIAN DOLLAR/US$': 'rnn_scalers/AUSTRALIAN_DOLLAR_US__scaler.pkl'}
 
 # (session state will hold the most recent forecast dataframe)
 
@@ -107,10 +116,12 @@ def master_():
 # This loads a model into the global model_ variable ready to be used for forecasting
 def load_model(_currency,model_n):
     global model_name
-
+    
     # persist model in session_state so it survives reruns
     if 'model_' not in st.session_state:
         st.session_state['model_'] = None
+    if 'rnn_scaler_' not in st.session_state:
+        st.session_state['rnn_scaler_'] = None
 
     if model_n=="ARIMA":
         loaded_arima_models = load_saved_arima_models(saved_arima_models)
@@ -123,8 +134,13 @@ def load_model(_currency,model_n):
         st.session_state['model_'] = loaded_gb_models[_currency]
         print(f"LOADED GB MODEL:{_currency}")
     if model_n =="LSTM-RNN":
+        loaded_rnn_models = load_saved_rnn_models(saved_rnn_models)
+        loaded_rnn_scalers = load_saved_rnn_scalers(saved_rnn_scalers)
+        model_name = "LSTM-RNN"
+        st.session_state['model_'] = loaded_rnn_models[_currency]
+        st.session_state['rnn_scaler_'] = loaded_rnn_scalers[_currency]
+        # Also need to load the scaler.
         print(f"LOADED LSTMRNN MODEL:{_currency}")
-        print("Cannot load (model not saved yet)") # Remove when models are ready for use
 
 def execute_model():
     """To be executed when forecast button is pressed"""
@@ -149,8 +165,19 @@ def execute_model():
             print("Load a model")
 
     elif model_name == "LSTM-RNN":
-        # Make sure to add a way to load the scaler used during training here ready for forecast value inversion.
-        pass
+        model_obj = st.session_state.get('model_')
+        scaler_obj = st.session_state.get('rnn_scaler_')
+        if model_obj is not None: 
+            if scaler_obj is not None: # Also need to check if scaler is loaded.
+                fd = execute_rnn(model=model_obj,rnndata_p=rnn_train_dict,currency=currency,f=forecast_length,scaler=scaler_obj)
+                # persist forecast in session state so it survives reruns
+                st.session_state['forecasted_data'] = fd
+            else:
+                print("No RNN scaler is loaded")   
+        else:
+            print(model_obj)
+            print(scaler_obj)
+
     else:
         print("Couldn't execute forecast")
     
@@ -181,11 +208,19 @@ def execute_xgboost(model,xgbdata_p,currency,f):
 
     return fd
 
-
-# PLACE RNN FORECASTING EXECUTE + SCALER INVERSION FOR DF OUTPUT HERE:
 def execute_rnn(model,rnndata_p,currency,f,scaler):
 
-    return None
+    #Extract the correct currency data
+    train_d = rnndata_p[currency]
+
+    # Extract + split into X and y
+    train_X = train_d['X']
+    train_y = train_d['y']
+
+    # Make the forecast
+    fd = incremental_forecast_to_df(model = model, train_X = train_X, train_y = train_y, horizon = f, scaler = scaler)
+
+    return fd
 
 ##########################################################################
 
@@ -194,7 +229,11 @@ if __name__ == "__main__":
     global data
     global country_currency_dict
     global country_names
+    
     global xgbdata_processed
+
+    global rnn_training_dict # The training data (processed) used by the RNN-LSTM models.
+    global rnn_test_dict # ""
 
     # All data:
     data, country_currency_dict, country_names = load_and_process_forex_data()
@@ -204,6 +243,7 @@ if __name__ == "__main__":
     xgbdata_processed = process_all_xgboost(xgbdata_raw)
 
     # RNN specific data organisation:
+    rnn_train_dict,rnn_test_dict = preprocess_all_data_rnn_os(data, country_currency_dict, country_names)
 
     master_() #Executes when the app is opened.
     

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 
 from sklearn.preprocessing import RobustScaler
 
@@ -16,6 +17,7 @@ def extract_currency_df_rnn(data, currency):
     Returns:
     DataFrame: A dataframe containing only the specified country's data with date column
     """
+
     country_data = data[['Date',currency]].copy()
     
     # Ensure date column is included and properly formatted
@@ -162,6 +164,65 @@ def preprocess_all_data_rnn_os(all_data, cc_dict, countries, prefit_scalers: dic
         testing_dict[currency] = {"X": test_windowed_X, "y": test_windowed_y}
 
     return training_dict, testing_dict
+
+def load_saved_rnn_scalers(saved_files_dict):
+    """
+    Load saved RNN scalers from pickle files.
+    
+    Parameters:
+    -----------
+    saved_files_dict : dict
+        Dictionary mapping currency names to their saved file paths
+    
+    Returns:
+    --------
+    dict: Dictionary containing loaded scalers with currency names as keys
+    """
+    
+    loaded_rnn_scalers = {}
+    
+    for currency_name, filepath in saved_files_dict.items():
+        try:
+            with open(filepath, 'rb') as f:
+                scaler = pickle.load(f)
+            loaded_rnn_scalers[currency_name] = scaler
+            print(f"Successfully loaded {currency_name} scaler from {filepath}")
+        except FileNotFoundError:
+            print(f"Error: Could not find file {filepath} for {currency_name}")
+        except Exception as e:
+            print(f"Error loading {currency_name} scaler: {str(e)}")
+    
+    return loaded_rnn_scalers
+
+def load_saved_rnn_models(saved_files_dict):
+    """
+    Load saved RNN models from pickle files.
+    
+    Parameters:
+    -----------
+    saved_files_dict : dict
+        Dictionary mapping currency names to their saved file paths
+        (output from save_trained_models function)
+    
+    Returns:
+    --------
+    dict: Dictionary containing loaded models with currency names as keys
+    """
+    
+    loaded_models = {}
+    
+    for currency_name, filepath in saved_files_dict.items():
+        try:
+            with open(filepath, 'rb') as f:
+                model = pickle.load(f)
+            loaded_models[currency_name] = model
+            print(f"Successfully loaded {currency_name} model from {filepath}")
+        except FileNotFoundError:
+            print(f"Error: Could not find file {filepath} for {currency_name}")
+        except Exception as e:
+            print(f"Error loading {currency_name} model: {str(e)}")
+    
+    return loaded_models
 
 def incremental_forecast_to_df(
     model,
